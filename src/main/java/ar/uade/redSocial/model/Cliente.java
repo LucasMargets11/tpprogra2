@@ -54,4 +54,13 @@ public class Cliente {
     public void agregarConexion(String nombreCliente) {
         conexiones.add(nombreCliente);
     }
+
+    // Métodos necesarios para mantener consistencia en Undo (Iteración 1)
+    public void dejarDeSeguir(String nombreCliente) {
+        siguiendo.remove(nombreCliente);
+    }
+
+    public void removerConexion(String nombreCliente) {
+        conexiones.remove(nombreCliente);
+    }
 }
