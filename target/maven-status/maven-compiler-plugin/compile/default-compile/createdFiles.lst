@@ -1,4 +1,6 @@
 ar\uade\redsocial\service\JsonLoader.class
+ar\uade\redsocial\service\RedSocialEmpresarial$JsonDataWrapper.class
+ar\uade\redsocial\service\RedSocialEmpresarial$1.class
 ar\uade\redsocial\dto\RedDTO.class
 ar\uade\redsocial\model\Action.class
 ar\uade\redsocial\dto\ClienteDTO.class

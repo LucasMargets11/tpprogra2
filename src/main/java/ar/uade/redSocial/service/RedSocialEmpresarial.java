@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.io.Reader;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -46,7 +45,7 @@ public class RedSocialEmpresarial {
     // ---------------- CARGA DE DATOS ----------------
 
     public void loadFromJson(String ruta) {
-        Path path = Paths.get(ruta);
+        Path path = Path.of(ruta);
         if (!Files.exists(path)) {
             throw new IllegalArgumentException("Archivo no encontrado: " + ruta);
         }
@@ -218,7 +217,7 @@ public class RedSocialEmpresarial {
                 // Rollback parcial (volvemos a poner lo que sacamos)
                 colaSeguimientos.addLast(lastRequest);
                 throw new IllegalStateException(
-                    String.format("Corrupción de historial: Se intentó deshacer '%s' pero en la cola estaba '%s'", originalRequest, lastRequest)
+                        "Corrupción de historial: Se intentó deshacer '%s' pero en la cola estaba '%s'".formatted(originalRequest, lastRequest)
                 );
             }
         }
