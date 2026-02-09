@@ -5,6 +5,7 @@ ar\uade\redsocial\dto\RedDTO.class
 ar\uade\redsocial\model\Action.class
 ar\uade\redsocial\dto\ClienteDTO.class
 ar\uade\redsocial\service\RedSocialEmpresarial.class
+ar\uade\redsocial\DemoApp.class
 ar\uade\redsocial\model\FollowRequest.class
 ar\uade\redsocial\model\ActionType.class
 ar\uade\redsocial\model\Cliente.class
