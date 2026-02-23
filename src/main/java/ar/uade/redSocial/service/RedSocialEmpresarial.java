@@ -203,48 +203,51 @@ public class RedSocialEmpresarial {
     }
 
     private void deshacerSolicitudSeguir(Action action) {
-        if (colaSeguimientos.isEmpty()) {
-            throw new IllegalStateException("Inconsistencia: Undo REQUEST_FOLLOW pero la cola está vacía.");
-        }
-
-        // Recuperar y remover la última solicitud (LIFO behavior sobre la estructura usada como Queue)
-        // La solicitud correspondiente a ESTA acción debería ser la última agregada.
-        FollowRequest lastRequest = colaSeguimientos.removeLast();
-
-        // Validar integridad
-        Object payload = action.payload();
-        if (payload instanceof FollowRequest originalRequest) {
-            if (!originalRequest.equals(lastRequest)) {
-                // Rollback parcial (volvemos a poner lo que sacamos)
-                colaSeguimientos.addLast(lastRequest);
-                throw new IllegalStateException(
-                    String.format("Corrupción de historial: Se intentó deshacer '%s' pero en la cola estaba '%s'", originalRequest, lastRequest)
-                );
-            }
-        }
+    Object payload = action.payload();
+    if (!(payload instanceof FollowRequest originalRequest)) {
+        throw new IllegalStateException("REQUEST_FOLLOW sin payload válido.");
     }
+
+    // Saca exactamente ESA request, aunque no sea la última
+    boolean removed = colaSeguimientos.removeLastOccurrence(originalRequest);
+
+    if (!removed) {
+        throw new IllegalStateException(
+            "Inconsistencia: la solicitud a deshacer no existe en la cola: " + originalRequest
+        );
+    }
+}
 
     // ---------------- SEGUIMIENTOS (COLA) ----------------
 
     public void solicitarSeguir(String solicitante, String objetivo) {
-        validarNombre(solicitante);
-        validarNombre(objetivo);
+    validarNombre(solicitante);
+    validarNombre(objetivo);
 
-        if (!clientesPorNombre.containsKey(solicitante) ||
-            !clientesPorNombre.containsKey(objetivo)) {
-            throw new IllegalArgumentException("Cliente inexistente: " + solicitante + " o " + objetivo);
-        }
-
-        FollowRequest request = new FollowRequest(solicitante, objetivo, LocalDateTime.now());
-        colaSeguimientos.addLast(request);
-
-        registrarAccion(new Action(
-                ActionType.REQUEST_FOLLOW,
-                solicitante + " -> " + objetivo,
-                request,
-                LocalDateTime.now()
-        ));
+    if (solicitante.equals(objetivo)) {
+        throw new IllegalArgumentException("Un cliente no puede seguirse a sí mismo.");
     }
+
+    if (!clientesPorNombre.containsKey(solicitante) || !clientesPorNombre.containsKey(objetivo)) {
+        throw new IllegalArgumentException("Cliente inexistente: " + solicitante + " o " + objetivo);
+    }
+
+    for (FollowRequest fr : colaSeguimientos) {
+        if (fr.solicitante().equals(solicitante) && fr.objetivo().equals(objetivo)) {
+            throw new IllegalArgumentException("Solicitud ya pendiente: " + solicitante + " -> " + objetivo);
+        }
+    }
+
+    FollowRequest request = new FollowRequest(solicitante, objetivo, LocalDateTime.now());
+    colaSeguimientos.addLast(request);
+
+    registrarAccion(new Action(
+        ActionType.REQUEST_FOLLOW,
+        solicitante + " -> " + objetivo,
+        request,
+        LocalDateTime.now()
+    ));
+}
 
     public FollowRequest procesarSiguienteSolicitud() {
         return colaSeguimientos.pollFirst(); // FIFO

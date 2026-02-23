@@ -1,19 +1,15 @@
 package ar.uade.redsocial;
 
-import ar.uade.redsocial.dto.ClienteDTO;
 import ar.uade.redsocial.model.Action;
 import ar.uade.redsocial.model.Cliente;
 import ar.uade.redsocial.model.FollowRequest;
 import ar.uade.redsocial.service.RedSocialEmpresarial;
-import com.google.gson.Gson;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -44,9 +40,9 @@ class RedSocialEmpresarialTest {
         Path tempFile = Files.createTempFile("data_ok", ".json");
         Files.writeString(tempFile, jsonContent);
 
-        red.loadFromJson(tempFile.toString());
+        red.loadFromJson(tempFile.toString()); //llama al método a probar
 
-        assertEquals(2, red.cantidadClientes());
+        assertEquals(2, red.cantidadClientes()); //aca se carga el json, se crean los clientes y se indexan
         
         Cliente alice = red.buscarPorNombre("Alice");
         assertNotNull(alice);
