@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="ar.uade.redsocial.RedSocialEmpresarialTest" time="0.286" tests="8" errors="0" skipped="0" failures="0">
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="ar.uade.redsocial.RedSocialEmpresarialTest" time="0.364" tests="8" errors="0" skipped="0" failures="0">
   <properties>
     <property name="java.specification.version" value="25"/>
     <property name="sun.cpu.isalist" value="amd64"/>
@@ -15,7 +15,7 @@
     <property name="sun.java.launcher" value="SUN_STANDARD"/>
     <property name="user.country" value="AR"/>
     <property name="sun.boot.library.path" value="C:\Program Files\Java\jdk-25.0.2\bin"/>
-    <property name="sun.java.command" value="C:\Users\Usuario\AppData\Local\Temp\surefire1548878341172136151\surefirebooter-20260209204023491_3.jar C:\Users\Usuario\AppData\Local\Temp\surefire1548878341172136151 2026-02-09T20-40-23_261-jvmRun1 surefire-20260209204023491_1tmp surefire_0-20260209204023491_2tmp"/>
+    <property name="sun.java.command" value="C:\Users\Usuario\AppData\Local\Temp\surefire18130809323853055119\surefirebooter-20260209213058571_3.jar C:\Users\Usuario\AppData\Local\Temp\surefire18130809323853055119 2026-02-09T21-30-58_370-jvmRun1 surefire-20260209213058571_1tmp surefire_0-20260209213058571_2tmp"/>
     <property name="jdk.debug" value="release"/>
     <property name="surefire.test.class.path" value="D:\Usuario\Desktop\TPPROGRA2\target\test-classes;D:\Usuario\Desktop\TPPROGRA2\target\classes;C:\Users\Usuario\.m2\repository\com\google\code\gson\gson\2.11.0\gson-2.11.0.jar;C:\Users\Usuario\.m2\repository\com\google\errorprone\error_prone_annotations\2.27.0\error_prone_annotations-2.27.0.jar;C:\Users\Usuario\.m2\repository\org\junit\jupiter\junit-jupiter\5.10.2\junit-jupiter-5.10.2.jar;C:\Users\Usuario\.m2\repository\org\junit\jupiter\junit-jupiter-api\5.10.2\junit-jupiter-api-5.10.2.jar;C:\Users\Usuario\.m2\repository\org\opentest4j\opentest4j\1.3.0\opentest4j-1.3.0.jar;C:\Users\Usuario\.m2\repository\org\junit\platform\junit-platform-commons\1.10.2\junit-platform-commons-1.10.2.jar;C:\Users\Usuario\.m2\repository\org\apiguardian\apiguardian-api\1.1.2\apiguardian-api-1.1.2.jar;C:\Users\Usuario\.m2\repository\org\junit\jupiter\junit-jupiter-params\5.10.2\junit-jupiter-params-5.10.2.jar;C:\Users\Usuario\.m2\repository\org\junit\jupiter\junit-jupiter-engine\5.10.2\junit-jupiter-engine-5.10.2.jar;C:\Users\Usuario\.m2\repository\org\junit\platform\junit-platform-engine\1.10.2\junit-platform-engine-1.10.2.jar;"/>
     <property name="sun.cpu.endian" value="little"/>
@@ -30,7 +30,7 @@
     <property name="line.separator" value="&#10;"/>
     <property name="java.vm.specification.vendor" value="Oracle Corporation"/>
     <property name="java.specification.name" value="Java Platform API Specification"/>
-    <property name="surefire.real.class.path" value="C:\Users\Usuario\AppData\Local\Temp\surefire1548878341172136151\surefirebooter-20260209204023491_3.jar"/>
+    <property name="surefire.real.class.path" value="C:\Users\Usuario\AppData\Local\Temp\surefire18130809323853055119\surefirebooter-20260209213058571_3.jar"/>
     <property name="user.script" value=""/>
     <property name="sun.management.compiler" value="HotSpot 64-Bit Tiered Compilers"/>
     <property name="java.runtime.version" value="25.0.2+10-LTS-69"/>
@@ -59,12 +59,12 @@
     <property name="sun.io.unicode.encoding" value="UnicodeLittle"/>
     <property name="java.class.version" value="69.0"/>
   </properties>
-  <testcase name="testUndo_AddClient_CleanReferences" classname="ar.uade.redsocial.RedSocialEmpresarialTest" time="0.102"/>
-  <testcase name="testFIFO_solicitarYProcesar" classname="ar.uade.redsocial.RedSocialEmpresarialTest" time="0.007"/>
-  <testcase name="testBuscadores" classname="ar.uade.redsocial.RedSocialEmpresarialTest" time="0.003"/>
-  <testcase name="testLoadFromJson_duplicados_falla" classname="ar.uade.redsocial.RedSocialEmpresarialTest" time="0.082"/>
-  <testcase name="testLoadFromJson_ok_conFormatoDelTP" classname="ar.uade.redsocial.RedSocialEmpresarialTest" time="0.005"/>
+  <testcase name="testUndo_AddClient_CleanReferences" classname="ar.uade.redsocial.RedSocialEmpresarialTest" time="0.139"/>
+  <testcase name="testFIFO_solicitarYProcesar" classname="ar.uade.redsocial.RedSocialEmpresarialTest" time="0.012"/>
+  <testcase name="testBuscadores" classname="ar.uade.redsocial.RedSocialEmpresarialTest" time="0.004"/>
+  <testcase name="testLoadFromJson_duplicados_falla" classname="ar.uade.redsocial.RedSocialEmpresarialTest" time="0.117"/>
+  <testcase name="testLoadFromJson_ok_conFormatoDelTP" classname="ar.uade.redsocial.RedSocialEmpresarialTest" time="0.008"/>
   <testcase name="testLoadFromJson_scoringNegativo_falla" classname="ar.uade.redsocial.RedSocialEmpresarialTest" time="0.005"/>
-  <testcase name="testUndo_RequestFollow" classname="ar.uade.redsocial.RedSocialEmpresarialTest" time="0.011"/>
-  <testcase name="testLoadFromJson_jsonInvalido_falla" classname="ar.uade.redsocial.RedSocialEmpresarialTest" time="0.006"/>
+  <testcase name="testUndo_RequestFollow" classname="ar.uade.redsocial.RedSocialEmpresarialTest" time="0.013"/>
+  <testcase name="testLoadFromJson_jsonInvalido_falla" classname="ar.uade.redsocial.RedSocialEmpresarialTest" time="0.008"/>
 </testsuite>

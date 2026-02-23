@@ -20,6 +20,8 @@ import java.util.*;
  * - TreeMap para índice por scoring (O(log n))
  * - ArrayDeque como pila para historial de acciones (LIFO, O(1))
  * - ArrayDeque como cola para solicitudes de seguimiento (FIFO, O(1))
+ * 
+ * - Interfaces
  */
 public class RedSocialEmpresarial {
 
@@ -37,6 +39,8 @@ public class RedSocialEmpresarial {
     // Solicitudes de seguimiento (COLA)
     private final Deque<FollowRequest> colaSeguimientos = new ArrayDeque<>();
 
+    // los seguimientos deben estar en el orden en el que fueron enviados. y que sea
+    // individual por cada usuario.
     // Clase auxiliar para mapear la raíz del JSON
     private static class JsonDataWrapper {
         List<ClienteDTO> clientes;
@@ -63,10 +67,10 @@ public class RedSocialEmpresarial {
                 if (clientesPorNombre.containsKey(dto.nombre)) {
                     throw new IllegalArgumentException("Cliente duplicado en JSON: " + dto.nombre);
                 }
-                
+
                 // addClienteInterno ya valida scoring < 0
                 Cliente nuevo = addClienteInterno(dto.nombre, dto.scoring);
-                
+
                 // Parseo tolerante de listas
                 if (dto.siguiendo != null) {
                     for (String seguido : dto.siguiendo) {
@@ -99,9 +103,8 @@ public class RedSocialEmpresarial {
         registrarAccion(new Action(
                 ActionType.ADD_CLIENT,
                 nombre,
-                cliente, 
-                LocalDateTime.now()
-        ));
+                cliente,
+                LocalDateTime.now()));
     }
 
     // Método interno que NO registra en historial (usado por carga JSON)
@@ -115,7 +118,7 @@ public class RedSocialEmpresarial {
         indicePorScoring
                 .computeIfAbsent(scoring, k -> new HashSet<>())
                 .add(nombre);
-        
+
         return cliente;
     }
 
@@ -134,8 +137,7 @@ public class RedSocialEmpresarial {
     }
 
     public List<Cliente> buscarPorScoringEntre(int min, int max) {
-        NavigableMap<Integer, Set<String>> subMapa =
-                indicePorScoring.subMap(min, true, max, true);
+        NavigableMap<Integer, Set<String>> subMapa = indicePorScoring.subMap(min, true, max, true);
 
         List<Cliente> resultado = new ArrayList<>();
         for (Set<String> nombres : subMapa.values()) {
@@ -183,7 +185,8 @@ public class RedSocialEmpresarial {
     private void eliminarClienteCompleto(String nombre) {
         // 1. Eliminar del mapa principal
         Cliente eliminado = clientesPorNombre.remove(nombre);
-        if (eliminado == null) return; // Ya no existía (raro pero defensivo)
+        if (eliminado == null)
+            return; // Ya no existía (raro pero defensivo)
 
         // 2. Eliminar del índice por scoring
         Set<String> nombresEnScoring = indicePorScoring.get(eliminado.getScoring());
@@ -206,7 +209,8 @@ public class RedSocialEmpresarial {
             throw new IllegalStateException("Inconsistencia: Undo REQUEST_FOLLOW pero la cola está vacía.");
         }
 
-        // Recuperar y remover la última solicitud (LIFO behavior sobre la estructura usada como Queue)
+        // Recuperar y remover la última solicitud (LIFO behavior sobre la estructura
+        // usada como Queue)
         // La solicitud correspondiente a ESTA acción debería ser la última agregada.
         FollowRequest lastRequest = colaSeguimientos.removeLast();
 
@@ -217,8 +221,8 @@ public class RedSocialEmpresarial {
                 // Rollback parcial (volvemos a poner lo que sacamos)
                 colaSeguimientos.addLast(lastRequest);
                 throw new IllegalStateException(
-                        "Corrupción de historial: Se intentó deshacer '%s' pero en la cola estaba '%s'".formatted(originalRequest, lastRequest)
-                );
+                        "Corrupción de historial: Se intentó deshacer '%s' pero en la cola estaba '%s'"
+                                .formatted(originalRequest, lastRequest));
             }
         }
     }
@@ -230,7 +234,7 @@ public class RedSocialEmpresarial {
         validarNombre(objetivo);
 
         if (!clientesPorNombre.containsKey(solicitante) ||
-            !clientesPorNombre.containsKey(objetivo)) {
+                !clientesPorNombre.containsKey(objetivo)) {
             throw new IllegalArgumentException("Cliente inexistente: " + solicitante + " o " + objetivo);
         }
 
@@ -241,8 +245,7 @@ public class RedSocialEmpresarial {
                 ActionType.REQUEST_FOLLOW,
                 solicitante + " -> " + objetivo,
                 request,
-                LocalDateTime.now()
-        ));
+                LocalDateTime.now()));
     }
 
     public FollowRequest procesarSiguienteSolicitud() {

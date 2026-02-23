@@ -55,7 +55,7 @@ public class DemoApp {
         } catch (IOException ex) {
             System.err.println("Error usando JsonLoader: " + ex.getMessage());
         }
-
+        System.out.println("No se pudieron cargar datos desde el archivo JSON.");
         return false;
     }
 
@@ -79,7 +79,7 @@ public class DemoApp {
             return;
         }
 
-        Cliente encontrado = sistema.buscarPorNombre("Hugo");
+        Cliente encontrado = sistema.buscarPorNombre("Alice");
         if (encontrado == null) {
             encontrado = todos.get(0);
         }
