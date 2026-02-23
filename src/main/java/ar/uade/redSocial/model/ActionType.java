@@ -6,6 +6,5 @@ package ar.uade.redsocial.model;
 public enum ActionType {
     ADD_CLIENT,
     REQUEST_FOLLOW,
-    // Iteración 2/3: SEGUIR_CLIENTE, CONECTAR, etc.
-    PROCESS_FOLLOW // Opcional, si quisiéramos registrar el procesado
+    PROCESS_FOLLOW
 }

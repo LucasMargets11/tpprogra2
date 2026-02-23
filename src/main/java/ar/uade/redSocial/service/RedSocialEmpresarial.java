@@ -43,6 +43,9 @@ public class RedSocialEmpresarial {
         List<ClienteDTO> clientes;
     }
 
+    // seguidores del cliente (nombre -> cantidad)
+    private final Map<String, Integer> seguidoresPorCliente = new HashMap<>();
+
     // ---------------- CARGA DE DATOS ----------------
 
     public void loadFromJson(String ruta) {
@@ -107,18 +110,21 @@ public class RedSocialEmpresarial {
 
     // Método interno que NO registra en historial (usado por carga JSON)
     private Cliente addClienteInterno(String nombre, int scoring) {
-        validarNombre(nombre);
-        validarScoring(scoring);
+    validarNombre(nombre);
+    validarScoring(scoring);
 
-        Cliente cliente = new Cliente(nombre, scoring);
-        clientesPorNombre.put(nombre, cliente);
+    Cliente cliente = new Cliente(nombre, scoring);
+    clientesPorNombre.put(nombre, cliente);
 
-        indicePorScoring
-                .computeIfAbsent(scoring, k -> new HashSet<>())
-                .add(nombre);
-        
-        return cliente;
-    }
+    indicePorScoring
+            .computeIfAbsent(scoring, k -> new HashSet<>())
+            .add(nombre);
+
+    // Inicializa seguidores
+    seguidoresPorCliente.put(nombre, 0);
+
+    return cliente;
+}
 
     public Cliente buscarPorNombre(String nombre) {
         return clientesPorNombre.get(nombre);
@@ -153,68 +159,106 @@ public class RedSocialEmpresarial {
 
     // ---------------- HISTORIAL (PILA) & UNDO ----------------
 
-    private void registrarAccion(Action accion) {
-        historial.push(accion);
+private void registrarAccion(Action accion) {
+    historial.push(accion);
+}
+
+/**
+ * @deprecated Usar {@link #undo()} para una API más moderna.
+ */
+@Deprecated
+public Action deshacerUltimaAccion() {
+    return undo().orElse(null);
+}
+
+public Optional<Action> undo() {
+    if (historial.isEmpty()) {
+        return Optional.empty();
     }
 
-    /**
-     * @deprecated Usar {@link #undo()} para una API más moderna.
-     */
-    @Deprecated
-    public Action deshacerUltimaAccion() {
-        return undo().orElse(null);
+    Action ultima = historial.pop();
+
+    switch (ultima.type()) {
+        case ADD_CLIENT -> eliminarClienteCompleto(ultima.detalle());
+        case REQUEST_FOLLOW -> deshacerSolicitudSeguir(ultima);
+        case PROCESS_FOLLOW -> deshacerFollowProcesado(ultima);
+        default -> throw new IllegalStateException("Acción desconocida en historial: " + ultima.type());
     }
 
-    public Optional<Action> undo() {
-        if (historial.isEmpty()) {
-            return Optional.empty();
-        }
+    return Optional.of(ultima);
+}
 
-        Action ultima = historial.pop();
+private void eliminarClienteCompleto(String nombre) {
+    // 0. Eliminar contador de seguidores
+    seguidoresPorCliente.remove(nombre);
 
-        switch (ultima.type()) {
-            case ADD_CLIENT -> eliminarClienteCompleto(ultima.detalle());
-            case REQUEST_FOLLOW -> deshacerSolicitudSeguir(ultima);
-            default -> throw new IllegalStateException("Acción desconocida en historial: " + ultima.type());
-        }
+    // 1. Eliminar del mapa principal
+    Cliente eliminado = clientesPorNombre.remove(nombre);
+    if (eliminado == null) return;
 
-        return Optional.of(ultima);
-    }
-
-    private void eliminarClienteCompleto(String nombre) {
-        // 1. Eliminar del mapa principal
-        Cliente eliminado = clientesPorNombre.remove(nombre);
-        if (eliminado == null) return; // Ya no existía (raro pero defensivo)
-
-        // 2. Eliminar del índice por scoring
-        Set<String> nombresEnScoring = indicePorScoring.get(eliminado.getScoring());
-        if (nombresEnScoring != null) {
-            nombresEnScoring.remove(nombre);
-            if (nombresEnScoring.isEmpty()) {
-                indicePorScoring.remove(eliminado.getScoring());
-            }
-        }
-
-        // 3. Limpiar referencias en otros clientes para evitar inconsistencias
-        for (Cliente otro : clientesPorNombre.values()) {
-            otro.dejarDeSeguir(nombre);
-            otro.removerConexion(nombre);
+    // 2. Eliminar del índice por scoring
+    Set<String> nombresEnScoring = indicePorScoring.get(eliminado.getScoring());
+    if (nombresEnScoring != null) {
+        nombresEnScoring.remove(nombre);
+        if (nombresEnScoring.isEmpty()) {
+            indicePorScoring.remove(eliminado.getScoring());
         }
     }
 
-    private void deshacerSolicitudSeguir(Action action) {
+    // 3. Limpiar referencias en otros clientes
+    for (Cliente otro : clientesPorNombre.values()) {
+        otro.dejarDeSeguir(nombre);
+        otro.removerConexion(nombre);
+    }
+}
+
+private void deshacerSolicitudSeguir(Action action) {
     Object payload = action.payload();
+
     if (!(payload instanceof FollowRequest originalRequest)) {
         throw new IllegalStateException("REQUEST_FOLLOW sin payload válido.");
     }
 
-    // Saca exactamente ESA request, aunque no sea la última
     boolean removed = colaSeguimientos.removeLastOccurrence(originalRequest);
 
     if (!removed) {
         throw new IllegalStateException(
-            "Inconsistencia: la solicitud a deshacer no existe en la cola: " + originalRequest
+                "Inconsistencia: la solicitud a deshacer no existe en la cola: " + originalRequest
         );
+    }
+}
+
+private void deshacerFollowProcesado(Action action) {
+    Object payload = action.payload();
+
+    if (!(payload instanceof FollowRequest req)) {
+        throw new IllegalStateException("PROCESS_FOLLOW sin payload válido.");
+    }
+
+    String solicitante = req.solicitante();
+    String objetivo = req.objetivo();
+
+    Cliente cSolicitante = clientesPorNombre.get(solicitante);
+    Cliente cObjetivo = clientesPorNombre.get(objetivo);
+
+    if (cSolicitante == null || cObjetivo == null) {
+        throw new IllegalStateException("Inconsistencia: Undo PROCESS_FOLLOW con cliente inexistente.");
+    }
+
+    if (!cSolicitante.getSiguiendo().contains(objetivo)) {
+        throw new IllegalStateException(
+                "Inconsistencia: '" + solicitante + "' no seguía a '" + objetivo + "'."
+        );
+    }
+
+    // Quitar relación
+    cSolicitante.dejarDeSeguir(objetivo);
+
+    // Disminuir contador de seguidores
+    seguidoresPorCliente.merge(objetivo, -1, Integer::sum);
+
+    if (seguidoresPorCliente.getOrDefault(objetivo, 0) < 0) {
+        seguidoresPorCliente.put(objetivo, 0);
     }
 }
 
@@ -250,8 +294,52 @@ public class RedSocialEmpresarial {
 }
 
     public FollowRequest procesarSiguienteSolicitud() {
-        return colaSeguimientos.pollFirst(); // FIFO
+    FollowRequest req = colaSeguimientos.pollFirst(); // FIFO
+
+    if (req == null) {
+        throw new NoSuchElementException("No hay solicitudes pendientes.");
     }
+
+    String solicitante = req.solicitante();
+    String objetivo = req.objetivo();
+
+    Cliente cSolicitante = clientesPorNombre.get(solicitante);
+    Cliente cObjetivo = clientesPorNombre.get(objetivo);
+
+    if (cSolicitante == null || cObjetivo == null) {
+        throw new IllegalStateException("Inconsistencia: solicitud con cliente inexistente.");
+    }
+
+    // Límite: máximo 2 seguidos
+    if (cSolicitante.getSiguiendo().size() >= 2) {
+        throw new IllegalStateException(
+                "El cliente '" + solicitante + "' ya sigue a 2 clientes (límite alcanzado)."
+        );
+    }
+
+    // No duplicar follow real
+    if (cSolicitante.getSiguiendo().contains(objetivo)) {
+        throw new IllegalStateException(
+                "El cliente '" + solicitante + "' ya sigue a '" + objetivo + "'."
+        );
+    }
+
+    // Aplicar relación real
+    cSolicitante.seguirA(objetivo);
+
+    // Aumentar contador de seguidores del objetivo
+    seguidoresPorCliente.merge(objetivo, 1, Integer::sum);
+
+    // Registrar acción para poder hacer undo
+    registrarAccion(new Action(
+            ActionType.PROCESS_FOLLOW,
+            solicitante + " -> " + objetivo,
+            req,
+            LocalDateTime.now()
+    ));
+
+    return req;
+}
 
     public int cantidadSolicitudesPendientes() {
         return colaSeguimientos.size();

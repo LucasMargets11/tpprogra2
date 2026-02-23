@@ -17,6 +17,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class RedSocialEmpresarialTest {
 
     private RedSocialEmpresarial red;
+    
 
     @BeforeEach
     void setUp() {
