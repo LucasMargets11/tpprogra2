@@ -49,46 +49,84 @@ public class RedSocialEmpresarial {
     // ---------------- CARGA DE DATOS ----------------
 
     public void loadFromJson(String ruta) {
-        Path path = Paths.get(ruta);
-        if (!Files.exists(path)) {
-            throw new IllegalArgumentException("Archivo no encontrado: " + ruta);
-        }
-
-        try (Reader reader = Files.newBufferedReader(path)) {
-            JsonDataWrapper wrapper = gson.fromJson(reader, JsonDataWrapper.class);
-
-            if (wrapper == null || wrapper.clientes == null) {
-                // Si el archivo no tiene la estructura {"clientes": ...} o está vacío
-                return;
-            }
-
-            for (ClienteDTO dto : wrapper.clientes) {
-                // Validación estricta de duplicados y scoring
-                if (clientesPorNombre.containsKey(dto.nombre)) {
-                    throw new IllegalArgumentException("Cliente duplicado en JSON: " + dto.nombre);
-                }
-                
-                // addClienteInterno ya valida scoring < 0
-                Cliente nuevo = addClienteInterno(dto.nombre, dto.scoring);
-                
-                // Parseo tolerante de listas
-                if (dto.siguiendo != null) {
-                    for (String seguido : dto.siguiendo) {
-                        nuevo.seguirA(seguido);
-                    }
-                }
-                if (dto.conexiones != null) {
-                    for (String conexion : dto.conexiones) {
-                        nuevo.agregarConexion(conexion);
-                    }
-                }
-            }
-        } catch (IOException e) {
-            throw new RuntimeException("Error leyendo archivo JSON", e);
-        } catch (JsonSyntaxException e) {
-            throw new IllegalArgumentException("JSON inválido o mal formateado", e);
-        }
+    Path path = Paths.get(ruta);
+    if (!Files.exists(path)) {
+        throw new IllegalArgumentException("Archivo no encontrado: " + ruta);
     }
+
+    try (Reader reader = Files.newBufferedReader(path)) {
+        JsonDataWrapper wrapper = gson.fromJson(reader, JsonDataWrapper.class);
+
+        if (wrapper == null || wrapper.clientes == null) {
+            return;
+        }
+
+        // -------- PASADA 1: crear clientes --------
+        for (ClienteDTO dto : wrapper.clientes) {
+            if (dto == null) {
+                throw new IllegalArgumentException("Cliente inválido (null) en JSON.");
+            }
+
+            // validar nombre y duplicados
+            validarNombre(dto.nombre);
+            if (clientesPorNombre.containsKey(dto.nombre)) {
+                throw new IllegalArgumentException("Cliente duplicado en JSON: " + dto.nombre);
+            }
+
+            // addClienteInterno ya valida scoring
+            addClienteInterno(dto.nombre, dto.scoring);
+        }
+
+        // -------- PASADA 2: aplicar relaciones siguiendo + contar seguidores --------
+        for (ClienteDTO dto : wrapper.clientes) {
+            if (dto.siguiendo == null) continue;
+
+            Cliente solicitante = clientesPorNombre.get(dto.nombre); // ya existe por pasada 1
+
+            // Regla: máximo 2 seguidos
+            if (dto.siguiendo.size() > 2) {
+                throw new IllegalArgumentException(
+                        "El cliente '" + dto.nombre + "' tiene más de 2 seguidos en JSON (límite 2)."
+                );
+            }
+
+            for (String objetivoNombre : dto.siguiendo) {
+                validarNombre(objetivoNombre);
+
+                if (dto.nombre.equals(objetivoNombre)) {
+                    throw new IllegalArgumentException(
+                            "El cliente '" + dto.nombre + "' no puede seguirse a sí mismo (JSON)."
+                    );
+                }
+
+                // El seguido debe existir en el JSON (porque ya cargamos todos en pasada 1)
+                if (!clientesPorNombre.containsKey(objetivoNombre)) {
+                    throw new IllegalArgumentException(
+                            "El cliente '" + dto.nombre + "' sigue a un cliente inexistente en JSON: '" + objetivoNombre + "'."
+                    );
+                }
+
+                // No duplicar follow real
+                if (solicitante.getSiguiendo().contains(objetivoNombre)) {
+                    throw new IllegalArgumentException(
+                            "Follow duplicado en JSON: '" + dto.nombre + "' -> '" + objetivoNombre + "'."
+                    );
+                }
+
+                // Aplicar follow real
+                solicitante.seguirA(objetivoNombre);
+
+                // Sumar seguidores al objetivo
+                seguidoresPorCliente.merge(objetivoNombre, 1, Integer::sum);
+            }
+        }
+
+    } catch (IOException e) {
+        throw new RuntimeException("Error leyendo archivo JSON", e);
+    } catch (JsonSyntaxException e) {
+        throw new IllegalArgumentException("JSON inválido o mal formateado", e);
+    }
+}
 
     // ---------------- CLIENTES ----------------
 
