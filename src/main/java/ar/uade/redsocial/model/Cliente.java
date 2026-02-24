@@ -9,8 +9,12 @@ import java.util.Set;
  * Invariantes:
  * - nombre != null && !nombre.isBlank()
  * - scoring >= 0
+ * - siguiendo.size() <= 2 (máximo 2 seguimientos)
+ * - followersCount >= 0
  */
 public class Cliente {
+
+    private static final int MAX_SEGUIMIENTOS = 2;
 
     private final String nombre;
     private final int scoring;
@@ -18,6 +22,9 @@ public class Cliente {
     // Preparado para iteraciones futuras
     private final Set<String> siguiendo = new HashSet<>();
     private final Set<String> conexiones = new HashSet<>();
+
+    // Iteración 2: contador de seguidores
+    private int followersCount = 0;
 
     public Cliente(String nombre, int scoring) {
         if (nombre == null || nombre.isBlank()) {
@@ -46,8 +53,28 @@ public class Cliente {
         return Collections.unmodifiableSet(conexiones);
     }
 
-    // Métodos para iteración 2 / 3
+    public int getFollowersCount() {
+        return followersCount;
+    }
+
+    // Iteración 2: validaciones de seguimiento
     public void seguirA(String nombreCliente) {
+        // Validación 1: No seguirse a sí mismo
+        if (this.nombre.equals(nombreCliente)) {
+            throw new IllegalArgumentException("Un cliente no puede seguirse a sí mismo");
+        }
+
+        // Validación 2: No duplicar seguimiento
+        if (siguiendo.contains(nombreCliente)) {
+            throw new IllegalArgumentException("Ya está siguiendo a " + nombreCliente);
+        }
+
+        // Validación 3: Máximo 2 seguimientos
+        if (siguiendo.size() >= MAX_SEGUIMIENTOS) {
+            throw new IllegalStateException(
+                    "No se puede seguir a más de " + MAX_SEGUIMIENTOS + " clientes");
+        }
+
         siguiendo.add(nombreCliente);
     }
 
@@ -62,5 +89,16 @@ public class Cliente {
 
     public void removerConexion(String nombreCliente) {
         conexiones.remove(nombreCliente);
+    }
+
+    // Iteración 2: gestión de followersCount
+    public void incrementarFollowers() {
+        followersCount++;
+    }
+
+    public void decrementarFollowers() {
+        if (followersCount > 0) {
+            followersCount--;
+        }
     }
 }

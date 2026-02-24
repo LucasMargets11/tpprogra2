@@ -39,7 +39,7 @@
     {
       "nombre": "Gisela",
       "scoring": 73,
-      "siguiendo": ["Ana", "Bruno", "Carla"],
+      "siguiendo": ["Ana", "Bruno"],
       "conexiones": []
     },
     {

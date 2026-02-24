@@ -1,6 +1,8 @@
 package ar.uade.redsocial.service;
 
 import ar.uade.redsocial.dto.ClienteDTO;
+import ar.uade.redsocial.estructuras.ArbolBinarioBusqueda;
+import ar.uade.redsocial.estructuras.GrafoConexiones;
 import ar.uade.redsocial.model.*;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
@@ -20,6 +22,8 @@ import java.util.*;
  * - TreeMap para índice por scoring (O(log n))
  * - ArrayDeque como pila para historial de acciones (LIFO, O(1))
  * - ArrayDeque como cola para solicitudes de seguimiento (FIFO, O(1))
+ * - ArbolBinarioBusqueda (ABB propio) para nivel 4 (Iteración 2)
+ * - GrafoConexiones para conexiones bidireccionales (Iteración 3)
  * 
  * - Interfaces
  */
@@ -38,6 +42,12 @@ public class RedSocialEmpresarial {
 
     // Solicitudes de seguimiento (COLA)
     private final Deque<FollowRequest> colaSeguimientos = new ArrayDeque<>();
+
+    // Iteración 2: ABB propio para obtener nivel 4
+    private final ArbolBinarioBusqueda abb = new ArbolBinarioBusqueda();
+
+    // Iteración 3: Grafo de conexiones bidireccionales
+    private final GrafoConexiones grafo = new GrafoConexiones();
 
     // los seguimientos deben estar en el orden en el que fueron enviados. y que sea
     // individual por cada usuario.
@@ -68,19 +78,58 @@ public class RedSocialEmpresarial {
                     throw new IllegalArgumentException("Cliente duplicado en JSON: " + dto.nombre);
                 }
 
+                // Validación Iteración 2: máximo 2 seguimientos
+                if (dto.siguiendo != null && dto.siguiendo.size() > 2) {
+                    throw new IllegalArgumentException(
+                            "Cliente '" + dto.nombre + "' tiene " + dto.siguiendo.size() +
+                                    " seguimientos (máximo permitido: 2)");
+                }
+
                 // addClienteInterno ya valida scoring < 0
                 Cliente nuevo = addClienteInterno(dto.nombre, dto.scoring);
 
                 // Parseo tolerante de listas
                 if (dto.siguiendo != null) {
                     for (String seguido : dto.siguiendo) {
-                        nuevo.seguirA(seguido);
+                        // seguirA() ya valida auto-seguimiento, duplicados y máximo 2
+                        try {
+                            nuevo.seguirA(seguido);
+                        } catch (IllegalArgumentException | IllegalStateException e) {
+                            throw new IllegalArgumentException(
+                                    "Error al cargar seguimientos de '" + dto.nombre + "': " + e.getMessage());
+                        }
                     }
                 }
                 if (dto.conexiones != null) {
                     for (String conexion : dto.conexiones) {
                         nuevo.agregarConexion(conexion);
                     }
+                }
+            }
+
+            // Segunda pasada: actualizar followersCount basado en seguimientos cargados
+            for (Cliente cliente : clientesPorNombre.values()) {
+                for (String nombreSeguido : cliente.getSiguiendo()) {
+                    Cliente seguido = clientesPorNombre.get(nombreSeguido);
+                    if (seguido != null) {
+                        seguido.incrementarFollowers();
+                    }
+                }
+            }
+
+            // Tercera pasada (Iteración 3): cargar conexiones en el grafo
+            for (Cliente cliente : clientesPorNombre.values()) {
+                for (String nombreConexion : cliente.getConexiones()) {
+                    Cliente clienteConexion = clientesPorNombre.get(nombreConexion);
+                    if (clienteConexion == null) {
+                        // Política: ignorar conexiones a clientes inexistentes con warning
+                        System.err.println("WARNING: Cliente '" + cliente.getNombre() +
+                                "' tiene conexión a cliente inexistente: " + nombreConexion);
+                        continue;
+                    }
+                    // agregarConexion es idempotente y bidireccional
+                    // Se agregará dos veces (una por cada lado) pero solo se guardará una vez
+                    grafo.agregarConexion(cliente.getNombre(), nombreConexion);
                 }
             }
         } catch (IOException e) {
@@ -118,6 +167,12 @@ public class RedSocialEmpresarial {
         indicePorScoring
                 .computeIfAbsent(scoring, k -> new HashSet<>())
                 .add(nombre);
+
+        // Iteración 2: insertar en ABB
+        abb.insertar(cliente);
+
+        // Iteración 3: agregar al grafo (sin conexiones inicialmente)
+        grafo.agregarCliente(nombre);
 
         return cliente;
     }
@@ -252,6 +307,28 @@ public class RedSocialEmpresarial {
         return colaSeguimientos.pollFirst(); // FIFO
     }
 
+    /**
+     * Iteración 2: Confirma un seguimiento y actualiza el contador de seguidores.
+     * 
+     * @param solicitante el cliente que quiere seguir
+     * @param objetivo    el cliente a seguir
+     * @throws IllegalArgumentException si los clientes no existen o las
+     *                                  validaciones fallan
+     * @throws IllegalStateException    si el solicitante ya sigue a 2 clientes
+     */
+    public void confirmarSeguimiento(String solicitante, String objetivo) {
+        Cliente clienteSolicitante = buscarPorNombre(solicitante);
+        Cliente clienteObjetivo = buscarPorNombre(objetivo);
+
+        if (clienteSolicitante == null || clienteObjetivo == null) {
+            throw new IllegalArgumentException("Cliente inexistente: " + solicitante + " o " + objetivo);
+        }
+
+        // seguirA() ya valida máximo 2, auto-seguimiento y duplicados
+        clienteSolicitante.seguirA(objetivo);
+        clienteObjetivo.incrementarFollowers();
+    }
+
     public int cantidadSolicitudesPendientes() {
         return colaSeguimientos.size();
     }
@@ -268,5 +345,100 @@ public class RedSocialEmpresarial {
         if (scoring < 0) {
             throw new IllegalArgumentException("Scoring inválido");
         }
+    }
+
+    // ---------------- ITERACIÓN 2: ABB Y NIVEL 4 ----------------
+
+    /**
+     * Obtiene los clientes del nivel 4 del ABB ordenados por followersCount
+     * descendente.
+     * El nivel 4 sirve para visualizar "quién tiene más seguidores" según
+     * enunciado.
+     * 
+     * @return lista de clientes en nivel 4 ordenados por cantidad de seguidores
+     * @complexity O(n) para BFS + O(k log k) para ordenar, siendo k = clientes en
+     *             nivel 4
+     */
+    public List<Cliente> obtenerClientesNivel4() {
+        return abb.obtenerNivel4();
+    }
+
+    /**
+     * Obtiene el ABB completo (útil para debugging y tests).
+     * 
+     * @return ABB con todos los clientes insertados
+     */
+    public ArbolBinarioBusqueda getABB() {
+        return abb;
+    }
+
+    // ---------------- ITERACIÓN 3: GRAFO Y DISTANCIAS ----------------
+
+    /**
+     * Obtiene los vecinos (clientes directamente conectados) de un cliente.
+     * 
+     * @param nombreCliente nombre del cliente
+     * @return conjunto inmutable de nombres de vecinos
+     * @complexity O(1) promedio
+     */
+    public Set<String> obtenerVecinos(String nombreCliente) {
+        return grafo.vecinos(nombreCliente);
+    }
+
+    /**
+     * Calcula la distancia en saltos entre dos clientes usando BFS.
+     * 
+     * @param origen  nombre del cliente origen
+     * @param destino nombre del cliente destino
+     * @return distancia en saltos (0 si son el mismo, -1 si no hay camino)
+     * @throws IllegalArgumentException si algún cliente no existe
+     * @complexity O(V + E) siendo V = vértices, E = aristas
+     */
+    public int calcularDistancia(String origen, String destino) {
+        return grafo.calcularDistancia(origen, destino);
+    }
+
+    /**
+     * Agrega una conexión bidireccional entre dos clientes.
+     * 
+     * @param cliente1 primer cliente
+     * @param cliente2 segundo cliente
+     * @throws IllegalArgumentException si los clientes no existen o son inválidos
+     * @complexity O(1) promedio
+     */
+    public void agregarConexion(String cliente1, String cliente2) {
+        if (!clientesPorNombre.containsKey(cliente1)) {
+            throw new IllegalArgumentException("Cliente no existe: " + cliente1);
+        }
+        if (!clientesPorNombre.containsKey(cliente2)) {
+            throw new IllegalArgumentException("Cliente no existe: " + cliente2);
+        }
+
+        grafo.agregarConexion(cliente1, cliente2);
+
+        // Sincronizar con Cliente (opcional, para consistencia con modelo actual)
+        clientesPorNombre.get(cliente1).agregarConexion(cliente2);
+        clientesPorNombre.get(cliente2).agregarConexion(cliente1);
+    }
+
+    /**
+     * Verifica si existe una conexión directa entre dos clientes.
+     * 
+     * @param cliente1 primer cliente
+     * @param cliente2 segundo cliente
+     * @return true si hay conexión directa
+     * @complexity O(1) promedio
+     */
+    public boolean existeConexion(String cliente1, String cliente2) {
+        return grafo.existeConexion(cliente1, cliente2);
+    }
+
+    /**
+     * Obtiene el grafo completo (útil para debugging y tests).
+     * 
+     * @return grafo de conexiones
+     */
+    public GrafoConexiones getGrafo() {
+        return grafo;
     }
 }
