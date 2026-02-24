@@ -15,11 +15,39 @@ mvn clean test
 
 Los tests (`RedSocialEmpresarialTest`) verifican carga de JSON, validaciones, FIFO y undo.
 
+## Runner de tests manuales (interactivo)
+
+Para probar manualmente todas las funcionalidades del TP con un menú CLI interactivo:
+
+```bash
+mvn exec:java
+```
+
+**Características del runner:**
+
+- ✅ Carga de JSON (demo.json o ruta personalizada)
+- 📸 Snapshot completo del sistema en JSON pretty
+- 📊 Consultas GET: clientes, scoring index, seguimientos, conexiones, ABB nivel 4
+- 🧮 Calcular distancias con BFS
+- ✏️ Operaciones POST: crear clientes, solicitar seguir, procesar solicitud, agregar conexión
+- ↩️ Undo con reversión de efectos
+- 📜 Historial de acciones
+
+**Casos de prueba manuales:** Ver [`docs/MANUAL_TESTS.md`](docs/MANUAL_TESTS.md) para casos de prueba detallados.
+
+### Ejecución rápida con carga automática
+
+```bash
+mvn exec:java -Dexec.args="demo.json"
+```
+
+Los tests (`RedSocialEmpresarialTest`) verifican carga de JSON, validaciones, FIFO y undo.
+
 ## Demo por consola
 
-1. Empaquetar y copiar dependencias:
+1. Compilar y copiar dependencias:
    ```bash
-   mvn -DskipTests package dependency:copy-dependencies
+   mvn compile dependency:copy-dependencies
    ```
 2. Ejecutar la demo (ruta del JSON opcional, por defecto `demo.json` en la raíz):
    - **Windows PowerShell**

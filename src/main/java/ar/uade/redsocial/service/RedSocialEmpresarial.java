@@ -441,4 +441,71 @@ public class RedSocialEmpresarial {
     public GrafoConexiones getGrafo() {
         return grafo;
     }
+
+    // ---------------- SNAPSHOT (para runner de tests manuales) ----------------
+
+    /**
+     * Genera un snapshot completo del estado actual del sistema.
+     * Útil para debugging y visualización en el runner interactivo.
+     * 
+     * @return mapa con toda la información del sistema
+     */
+    public Map<String, Object> getSnapshot() {
+        Map<String, Object> snapshot = new LinkedHashMap<>();
+
+        // Métricas generales
+        snapshot.put("cantidadClientes", clientesPorNombre.size());
+        snapshot.put("cantidadSolicitudesPendientes", colaSeguimientos.size());
+        snapshot.put("alturaABB", abb.altura());
+        snapshot.put("clientesEnGrafo", grafo.cantidadClientes());
+        snapshot.put("conexionesEnGrafo", grafo.cantidadConexiones());
+
+        // Lista de clientes con detalles
+        List<Map<String, Object>> clientes = new ArrayList<>();
+        for (Cliente c : clientesPorNombre.values()) {
+            Map<String, Object> clienteData = new LinkedHashMap<>();
+            clienteData.put("nombre", c.getNombre());
+            clienteData.put("scoring", c.getScoring());
+            clienteData.put("followersCount", c.getFollowersCount());
+            clienteData.put("siguiendo", new ArrayList<>(c.getSiguiendo()));
+            clienteData.put("conexiones", new ArrayList<>(c.getConexiones()));
+            clientes.add(clienteData);
+        }
+        clientes.sort((a, b) -> Integer.compare((int) b.get("scoring"), (int) a.get("scoring")));
+        snapshot.put("clientes", clientes);
+
+        // Índice por scoring
+        Map<Integer, List<String>> indexScoring = new TreeMap<>();
+        for (Map.Entry<Integer, Set<String>> entry : indicePorScoring.entrySet()) {
+            indexScoring.put(entry.getKey(), new ArrayList<>(entry.getValue()));
+        }
+        snapshot.put("indicePorScoring", indexScoring);
+
+        // Solicitudes pendientes
+        List<Map<String, String>> solicitudes = new ArrayList<>();
+        for (FollowRequest req : colaSeguimientos) {
+            Map<String, String> reqData = new LinkedHashMap<>();
+            reqData.put("solicitante", req.solicitante());
+            reqData.put("objetivo", req.objetivo());
+            reqData.put("fechaHora", req.fechaHora().toString());
+            solicitudes.add(reqData);
+        }
+        snapshot.put("solicitudesPendientes", solicitudes);
+
+        // Información del ABB
+        Map<String, Object> abbInfo = new LinkedHashMap<>();
+        abbInfo.put("size", abb.size());
+        abbInfo.put("altura", abb.altura());
+        abbInfo.put("estaVacio", abb.estaVacio());
+        snapshot.put("abb", abbInfo);
+
+        // Información del grafo
+        Map<String, Object> grafoInfo = new LinkedHashMap<>();
+        grafoInfo.put("cantidadClientes", grafo.cantidadClientes());
+        grafoInfo.put("cantidadConexiones", grafo.cantidadConexiones());
+        grafoInfo.put("estaVacio", grafo.estaVacio());
+        snapshot.put("grafo", grafoInfo);
+
+        return snapshot;
+    }
 }
