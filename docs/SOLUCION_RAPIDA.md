@@ -100,7 +100,7 @@ mvn exec:java -Dexec.args="demo.json"
 mvn clean test
 ```
 
-**Esperado:** `Tests run: 39, Failures: 0, Errors: 0`
+**Esperado:** `Tests run: 44, Failures: 0, Errors: 0`
 
 ### 2. Runner Interactivo
 

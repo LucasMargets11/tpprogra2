@@ -508,4 +508,31 @@ public class RedSocialEmpresarial {
 
         return snapshot;
     }
+
+    // ---------------- HISTORIAL - CONSULTA PÚBLICA ----------------
+
+    /**
+     * Retorna una lista inmutable con todas las acciones del historial.
+     * Orden: más reciente → más antiguo (mismo orden que undo()).
+     * 
+     * @return Lista inmutable de acciones (vacía si no hay historial)
+     */
+    public List<Action> getHistorialAcciones() {
+        return List.copyOf(historial);
+    }
+
+    /**
+     * Retorna una lista inmutable con las últimas N acciones del historial.
+     * Orden: más reciente → más antiguo (mismo orden que undo()).
+     * 
+     * @param limit Número máximo de acciones a retornar (debe ser >= 0)
+     * @return Lista inmutable de acciones limitadas
+     * @throws IllegalArgumentException si limit es negativo
+     */
+    public List<Action> getHistorialAcciones(int limit) {
+        if (limit < 0) {
+            throw new IllegalArgumentException("limit debe ser >= 0");
+        }
+        return historial.stream().limit(limit).toList();
+    }
 }

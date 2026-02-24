@@ -758,4 +758,107 @@ class RedSocialEmpresarialTest {
         assertThrows(IllegalArgumentException.class,
                 () -> red.agregarConexion("A", "Inexistente"));
     }
+
+    // ---------------- TESTS HISTORIAL PÚBLICO ----------------
+
+    @Test
+    void testGetHistorialAcciones_ordenCorrecto_masRecientePrimero() {
+        // Ejecutar secuencia de acciones
+        red.agregarCliente("ClienteA", 50);
+        red.agregarCliente("ClienteB", 60);
+        red.solicitarSeguir("ClienteA", "ClienteB");
+
+        // Nota: procesarSiguienteSolicitud() y confirmarSeguimiento()
+        // NO registran acciones en el historial
+
+        // Obtener historial
+        List<Action> historial = red.getHistorialAcciones();
+
+        // Validar que no está vacío
+        assertFalse(historial.isEmpty(), "El historial no debe estar vacío");
+        assertEquals(3, historial.size(), "Debe haber exactamente 3 acciones registradas");
+
+        // Validar orden: más reciente → más antiguo
+        // [0] = REQUEST_FOLLOW (más reciente)
+        // [1] = ADD_CLIENT ClienteB
+        // [2] = ADD_CLIENT ClienteA (más antiguo)
+        Action primera = historial.get(0);
+        assertEquals("REQUEST_FOLLOW", primera.type().toString(),
+                "La primera acción debe ser REQUEST_FOLLOW (la más reciente)");
+        assertTrue(primera.detalle().contains("ClienteA") && primera.detalle().contains("ClienteB"));
+
+        Action segunda = historial.get(1);
+        assertEquals("ADD_CLIENT", segunda.type().toString());
+        assertTrue(segunda.detalle().contains("ClienteB"));
+
+        Action tercera = historial.get(2);
+        assertEquals("ADD_CLIENT", tercera.type().toString());
+        assertTrue(tercera.detalle().contains("ClienteA"));
+
+        // Validar que todas tienen fechaHora no nulo
+        for (Action a : historial) {
+            assertNotNull(a.fechaHora(), "Cada acción debe tener fechaHora");
+            assertNotNull(a.type(), "Cada acción debe tener tipo");
+            assertNotNull(a.detalle(), "Cada acción debe tener detalle");
+        }
+    }
+
+    @Test
+    void testGetHistorialAcciones_listaInmutable() {
+        // Ejecutar acciones
+        red.agregarCliente("Test1", 10);
+        red.agregarCliente("Test2", 20);
+
+        // Obtener historial
+        List<Action> historial = red.getHistorialAcciones();
+
+        // Validar que es inmutable (no se puede modificar)
+        assertThrows(UnsupportedOperationException.class,
+                () -> historial.add(null),
+                "La lista retornada debe ser inmutable");
+
+        assertThrows(UnsupportedOperationException.class,
+                () -> historial.remove(0),
+                "No se debe poder remover elementos de la lista");
+
+        assertThrows(UnsupportedOperationException.class,
+                () -> historial.clear(),
+                "No se debe poder limpiar la lista");
+    }
+
+    @Test
+    void testGetHistorialAcciones_conLimit() {
+        // Ejecutar múltiples acciones
+        for (int i = 1; i <= 10; i++) {
+            red.agregarCliente("Cliente" + i, i * 10);
+        }
+
+        // Pedir solo las últimas 5
+        List<Action> historial5 = red.getHistorialAcciones(5);
+
+        assertEquals(5, historial5.size(), "Debe retornar exactamente 5 acciones");
+
+        // Validar que retorna las más recientes (Cliente10 debe ser la primera)
+        Action primera = historial5.get(0);
+        assertTrue(primera.detalle().contains("Cliente10"),
+                "La primera acción debe ser la más reciente (Cliente10)");
+    }
+
+    @Test
+    void testGetHistorialAcciones_limitNegativo_lanzaExcepcion() {
+        red.agregarCliente("Test", 50);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> red.getHistorialAcciones(-1),
+                "Límite negativo debe lanzar IllegalArgumentException");
+    }
+
+    @Test
+    void testGetHistorialAcciones_historialVacio() {
+        // No ejecutar ninguna acción
+        List<Action> historial = red.getHistorialAcciones();
+
+        assertTrue(historial.isEmpty(), "El historial debe estar vacío inicialmente");
+        assertEquals(0, historial.size());
+    }
 }

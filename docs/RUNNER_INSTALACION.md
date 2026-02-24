@@ -203,7 +203,7 @@ mvn clean test
 **Resultado esperado:**
 
 ```
-Tests run: 39, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 44, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
 ```
 
@@ -277,7 +277,7 @@ TPPROGRA2/
 │       ├── ClienteDTO.java
 │       └── RedDTO.java
 └── src/test/java/ar/uade/redsocial/
-    └── RedSocialEmpresarialTest.java  ✅ 39 tests (no afectados)
+    └── RedSocialEmpresarialTest.java  ✅ 44 tests (incluye tests de historial)
 ```
 
 ---
@@ -339,7 +339,7 @@ Si todos pasan → OK (no se afectó funcionalidad core)
 ## 📞 Contacto y Soporte
 
 **Repositorio:** `D:\Usuario\Desktop\TPPROGRA2`  
-**Tests:** `mvn test` (39 tests ✅)  
+**Tests:** `mvn test` (44 tests ✅)  
 **Runner:** `mvn exec:java`  
 **Documentación:** `docs/MANUAL_TESTS.md`
 

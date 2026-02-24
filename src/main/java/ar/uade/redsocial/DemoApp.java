@@ -356,9 +356,48 @@ public class DemoApp {
 
     private static void mostrarHistorial() {
         System.out.println("\n📜 HISTORIAL DE ACCIONES\n");
-        System.out.println("ℹ️ Funcionalidad opcional no implementada públicamente.");
-        System.out.println("   El historial se gestiona internamente para undo.");
-        System.out.println("   Para agregar: implementar getHistorial() en RedSocialEmpresarial.");
+
+        String limitStr = leerLinea("¿Cuántas acciones mostrar? [default: 20]");
+        int limit = 20;
+
+        if (!limitStr.isEmpty()) {
+            try {
+                limit = Integer.parseInt(limitStr);
+                if (limit < 0) {
+                    System.err.println("⚠️ Límite inválido, usando 20 por defecto.");
+                    limit = 20;
+                }
+            } catch (NumberFormatException e) {
+                System.err.println("⚠️ Límite inválido, usando 20 por defecto.");
+            }
+        }
+
+        List<Action> historial = sistema.getHistorialAcciones(limit);
+
+        if (historial.isEmpty()) {
+            System.out.println("ℹ️ Historial vacío (0 acciones).");
+            return;
+        }
+
+        System.out.printf("Mostrando las últimas %d acciones (de %d total):\n\n",
+                historial.size(), sistema.getHistorialAcciones().size());
+
+        System.out.printf("%-4s | %-19s | %-20s | %s\n", "#", "Fecha/Hora", "Tipo", "Detalle");
+        System.out.println("─".repeat(100));
+
+        for (int i = 0; i < historial.size(); i++) {
+            Action a = historial.get(i);
+            String timestamp = a.fechaHora().toString().replace('T', ' ');
+            String detalle = a.detalle();
+
+            // Truncar detalle si es muy largo
+            if (detalle.length() > 50) {
+                detalle = detalle.substring(0, 47) + "...";
+            }
+
+            System.out.printf("%-4d | %-19s | %-20s | %s\n",
+                    (i + 1), timestamp, a.type(), detalle);
+        }
     }
 
     // ==================== UTILIDADES ====================
